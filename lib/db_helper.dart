@@ -63,10 +63,16 @@ class DBHelper {
     return rowsEffected > 0;
   }
 
-  Future<List<Map<String, dynamic>>> getAllTodo() async {
+  ///0->pending
+  ///1->completed
+  ///2->all
+  Future<List<Map<String, dynamic>>> getAllTodo({int taskFlag = 2}) async {
     var db = await initDB();
-
-    return await db.query(tableName);
+    if(taskFlag<=1){
+      return await db.query(tableName, where: "$columnTodoIsCompleted = ?", whereArgs: ["$taskFlag"]);
+    } else {
+      return await db.query(tableName);
+    }
   }
 
   Future<bool> completeTodo({required int id, required bool isComplete}) async {
@@ -80,5 +86,25 @@ class DBHelper {
     );
 
     return rowsEffected > 0;
+  }
+
+  Future<bool> updateTodo({required String title, required String desc, required int id, required int priority}) async{
+    var db =  await initDB();
+
+    int rowsEffected =  await db.update(tableName, {
+      columnTodoTitle : title,
+      columnTodoDesc : desc,
+      columnTodoPriority : priority
+    }, where: "$columnTodoId = ?", whereArgs: ["$id"]);
+
+    return rowsEffected>0;
+  }
+
+  Future<bool> deleteTodo({required int id}) async {
+    var db =  await initDB();
+
+    int rowsEffected =  await db.delete(tableName, where: "$columnTodoId = ?", whereArgs: ["$id"]);
+
+    return rowsEffected>0;
   }
 }
