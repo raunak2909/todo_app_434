@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:todo_app_434/cubit/db_cubit.dart';
+import 'package:todo_app_434/db_helper.dart';
 import 'package:todo_app_434/home_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    BlocProvider(
+      create: (context) => DbCubit(dbHelper: DBHelper.getInstance()),
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -20,4 +28,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

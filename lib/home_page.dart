@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:todo_app_434/add_todo.dart';
+import 'package:todo_app_434/cubit/db_cubit.dart';
+import 'package:todo_app_434/cubit/db_state.dart';
 import 'package:todo_app_434/db_helper.dart';
 
 class HomePage extends StatefulWidget {
@@ -32,159 +35,179 @@ class _HomePageState extends State<HomePage> {
   }
 
   pendingTask() async {
-      mTodo = await dbHelper!.getAllTodo(taskFlag: 0);
-      setState(() {});
+    mTodo = await dbHelper!.getAllTodo(taskFlag: 0);
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Home')),
-      body: mTodo.isNotEmpty
-          ? Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      body: BlocBuilder<DbCubit, DbState>(
+        builder: (context, state) {
+          mTodo = state.mData;
+          return mTodo.isNotEmpty
+              ? Column(
                   children: [
-                    OutlinedButton(
-                      onPressed: () async{
-                        mTodo = await dbHelper!.getAllTodo(taskFlag: 0);
-                        setState(() {});
-                      },
-                      child: Text('Pending'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        OutlinedButton(
+                          onPressed: () async {
+                            mTodo = await dbHelper!.getAllTodo(taskFlag: 0);
+                            setState(() {});
+                          },
+                          child: Text('Pending'),
+                        ),
+                        OutlinedButton(
+                          onPressed: () async {
+                            mTodo = await dbHelper!.getAllTodo(taskFlag: 1);
+                            setState(() {});
+                          },
+                          child: Text('Completed'),
+                        ),
+                        OutlinedButton(
+                          onPressed: () async {
+                            mTodo = await dbHelper!.getAllTodo();
+                            setState(() {});
+                          },
+                          child: Text('All'),
+                        ),
+                      ],
                     ),
-                    OutlinedButton(
-                      onPressed: () async {
-                        mTodo = await dbHelper!.getAllTodo(taskFlag: 1);
-                        setState(() {});
-                      },
-                      child: Text('Completed'),
-                    ),
-                    OutlinedButton(
-                      onPressed: () async {
-                        mTodo = await dbHelper!.getAllTodo();
-                        setState(() {});
-                      },
-                      child: Text('All'),
+                    SizedBox(height: 11),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: mTodo.length,
+                        itemBuilder: (_, index) {
+                          Color bgColor = Colors.white;
+
+                          if (mTodo[index][DBHelper.columnTodoPriority] == 1) {
+                            bgColor = Colors.blue.shade200;
+                          } else if (mTodo[index][DBHelper
+                                  .columnTodoPriority] ==
+                              2) {
+                            bgColor = Colors.orange.shade200;
+                          } else {
+                            bgColor = Colors.red.shade200;
+                          }
+
+                          return Card(
+                            color: bgColor,
+                            child: ListTile(
+                              leading: Checkbox(
+                                value:
+                                    mTodo[index][DBHelper
+                                        .columnTodoIsCompleted] ==
+                                    1,
+                                onChanged: (value) async {
+                                  context.read<DbCubit>().completeTask(
+                                    id: mTodo[index][DBHelper.columnTodoId],
+                                    isCompleted: value ?? false,
+                                  );
+                                  /*bool isUpdated = await dbHelper!.completeTodo(
+                                    id: mTodo[index][DBHelper.columnTodoId],
+                                    isComplete: value ?? false,
+                                  );
+
+                                  if (isUpdated) {
+                                    loadData();
+                                  }*/
+                                },
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      titleController.text =
+                                          mTodo[index][DBHelper
+                                              .columnTodoTitle];
+                                      descController.text =
+                                          mTodo[index][DBHelper.columnTodoDesc];
+                                      int priority =
+                                          mTodo[index][DBHelper
+                                              .columnTodoPriority];
+                                      if (priority == 1) {
+                                        selectedPriority = "Low";
+                                      } else if (priority == 2) {
+                                        selectedPriority = "Medium";
+                                      } else {
+                                        selectedPriority = "High";
+                                      }
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => AddUpdateTodo(
+                                            isUpdate: true,
+                                            id:
+                                                mTodo[index][DBHelper
+                                                    .columnTodoId],
+                                            title:
+                                                mTodo[index][DBHelper
+                                                    .columnTodoTitle],
+                                            desc:
+                                                mTodo[index][DBHelper
+                                                    .columnTodoDesc],
+                                            priority: selectedPriority,
+                                          ),
+                                        ),
+                                      );
+
+                                      /*showModalBottomSheet(
+                                        context: context,
+                                        builder: (context) => myBottomSheetUI(isUpdate: true, id: mTodo[index][DBHelper.columnTodoId]),
+                                      );*/
+                                    },
+                                    icon: Icon(Icons.edit, color: Colors.white),
+                                  ),
+                                  IconButton(
+                                    onPressed: () async {
+                                      bool
+                                      isDeleted = await dbHelper!.deleteTodo(
+                                        id: mTodo[index][DBHelper.columnTodoId],
+                                      );
+                                      if (isDeleted) {
+                                        loadData();
+                                      }
+                                    },
+                                    icon: Icon(Icons.delete, color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                              title: Text(
+                                mTodo[index][DBHelper.columnTodoTitle],
+                                style: TextStyle(
+                                  decoration:
+                                      mTodo[index][DBHelper
+                                              .columnTodoIsCompleted] ==
+                                          1
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                ),
+                              ),
+                              subtitle: Text(
+                                mTodo[index][DBHelper.columnTodoDesc],
+                                style: TextStyle(
+                                  decoration:
+                                      mTodo[index][DBHelper
+                                              .columnTodoIsCompleted] ==
+                                          1
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ],
-                ),
-                SizedBox(height: 11),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: mTodo.length,
-                    itemBuilder: (_, index) {
-                      Color bgColor = Colors.white;
-
-                      if (mTodo[index][DBHelper.columnTodoPriority] == 1) {
-                        bgColor = Colors.blue.shade200;
-                      } else if (mTodo[index][DBHelper.columnTodoPriority] ==
-                          2) {
-                        bgColor = Colors.orange.shade200;
-                      } else {
-                        bgColor = Colors.red.shade200;
-                      }
-
-                      return Card(
-                        color: bgColor,
-                        child: ListTile(
-                          leading: Checkbox(
-                            value:
-                                mTodo[index][DBHelper.columnTodoIsCompleted] ==
-                                1,
-                            onChanged: (value) async {
-                              bool isUpdated = await dbHelper!.completeTodo(
-                                id: mTodo[index][DBHelper.columnTodoId],
-                                isComplete: value ?? false,
-                              );
-
-                              if (isUpdated) {
-                                loadData();
-                              }
-                            },
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  titleController.text =
-                                      mTodo[index][DBHelper.columnTodoTitle];
-                                  descController.text =
-                                      mTodo[index][DBHelper.columnTodoDesc];
-                                  int priority =
-                                      mTodo[index][DBHelper.columnTodoPriority];
-                                  if (priority == 1) {
-                                    selectedPriority = "Low";
-                                  } else if (priority == 2) {
-                                    selectedPriority = "Medium";
-                                  } else {
-                                    selectedPriority = "High";
-                                  }
-
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => AddUpdateTodo(
-                                          isUpdate: true,
-                                          id: mTodo[index][DBHelper.columnTodoId],
-                                          title: mTodo[index][DBHelper.columnTodoTitle],
-                                          desc: mTodo[index][DBHelper.columnTodoDesc],
-                                          priority: selectedPriority,
-                                      ),
-                                    ),
-                                  );
-
-                                  /*showModalBottomSheet(
-                                    context: context,
-                                    builder: (context) => myBottomSheetUI(isUpdate: true, id: mTodo[index][DBHelper.columnTodoId]),
-                                  );*/
-                                },
-                                icon: Icon(Icons.edit, color: Colors.white),
-                              ),
-                              IconButton(
-                                onPressed: () async {
-                                  bool isDeleted = await dbHelper!.deleteTodo(
-                                    id: mTodo[index][DBHelper.columnTodoId],
-                                  );
-                                  if (isDeleted) {
-                                    loadData();
-                                  }
-                                },
-                                icon: Icon(Icons.delete, color: Colors.red),
-                              ),
-                            ],
-                          ),
-                          title: Text(
-                            mTodo[index][DBHelper.columnTodoTitle],
-                            style: TextStyle(
-                              decoration:
-                                  mTodo[index][DBHelper
-                                          .columnTodoIsCompleted] ==
-                                      1
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                            ),
-                          ),
-                          subtitle: Text(
-                            mTodo[index][DBHelper.columnTodoDesc],
-                            style: TextStyle(
-                              decoration:
-                                  mTodo[index][DBHelper
-                                          .columnTodoIsCompleted] ==
-                                      1
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            )
-          : Center(child: Text('No Todos yet!!')),
+                )
+              : Center(child: Text('No Todos yet!!'));
+        },
+      ),
 
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -193,9 +216,7 @@ class _HomePageState extends State<HomePage> {
           descController.clear();
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => AddUpdateTodo(),
-            ),
+            MaterialPageRoute(builder: (context) => AddUpdateTodo()),
           );
           /*showModalBottomSheet(
             context: context,

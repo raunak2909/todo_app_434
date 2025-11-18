@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:todo_app_434/cubit/db_cubit.dart';
 import 'package:todo_app_434/db_helper.dart';
 
 class AddUpdateTodo extends StatelessWidget {
@@ -108,11 +110,13 @@ class AddUpdateTodo extends StatelessWidget {
                           id: id
                       );
                     } else {
-                      isTaskDone = await dbHelper!.addTodo(
+                      /*isTaskDone = await dbHelper!.addTodo(
                         title: titleController.text,
                         desc: descController.text,
                         priority: priority,
-                      );
+                      );*/
+                      context.read<DbCubit>().addTodo(title: titleController.text, desc: descController.text, priority: priority);
+                      Navigator.pop(context);
                     }
 
                     if (isTaskDone) {
